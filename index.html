@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBTI 迷你人格测试</title>
+    <!-- 引入 Tailwind CSS CDN 以实现快速、响应式设计 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        /* 自定义滚动条，使其更美观 */
+        .scrollable-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+        .scrollable-content::-webkit-scrollbar-track {
+            background-color: #f1f5f9;
+        }
+    </style>
+    <script>
+        // 配置 Tailwind 颜色主题
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#3b82f6',
+                        'secondary-green': '#10b981',
+                        'accent-yellow': '#f59e0b',
+                    },
+                }
+            }
+        }
+
+        // --- 1. 核心数据：题目和结果 (已大幅增加至 40 题) ---
+        // 维度定义：
+        // E (外向) / I (内向): E=1, I=0
+        // S (实感) / N (直觉): S=1, N: 0
+        // T (思考) / F (情感): T=1, F: 0
+        // J (判断) / P (感知): J=1, P: 0
+
+        const quizData = [
+            // E (外向) / I (内向) 维度 (10 题)
+            { id: 1, text: "在社交场合中，你通常是：", dimension: 'EI', options: [{ text: "主动发起并享受交流", value: 1 }, { text: "安静倾听并保持观察", value: 0 }] },
+            { id: 2, text: "当你需要做决定时，你会：", dimension: 'EI', options: [{ text: "与人讨论，从交流中理清思路", value: 1 }, { text: "独自思考，在脑海中整理想法", value: 0 }] },
+            { id: 3, text: "一天结束时，你的能量来源是：", dimension: 'EI', options: [{ text: "参加活动或与朋友相聚", value: 1 }, { text: "独处放松或享受安静时光", value: 0 }] },
+            { id: 4, text: "当电话响起时，你通常会：", dimension: 'EI', options: [{ text: "立即接听并开始对话", value: 1 }, { text: "让它响一会儿，看看是不是重要来电", value: 0 }] },
+            { id: 5, text: "你更喜欢：", dimension: 'EI', options: [{ text: "参加大型聚会和活动", value: 1 }, { text: "和少数亲密朋友进行深度交流", value: 0 }] },
+            { id: 6, text: "你的想法通常是：", dimension: 'EI', options: [{ text: "在说话时形成和发展", value: 1 }, { text: "在头脑中安静地酝酿成熟", value: 0 }] },
+            { id: 7, text: "你在社交媒体上：", dimension: 'EI', options: [{ text: "经常更新和发布动态", value: 1 }, { text: "更多是浏览和潜水", value: 0 }] },
+            { id: 8, text: "你喜欢把时间花在哪里：", dimension: 'EI', options: [{ text: "户外活动，体验新事物", value: 1 }, { text: "在安静的角落里阅读或思考", value: 0 }] },
+            { id: 9, text: "在团队中，你更倾向于：", dimension: 'EI', options: [{ text: "积极发言，带动气氛", value: 1 }, { text: "耐心聆听，提出深思熟虑的意见", value: 0 }] },
+            { id: 10, text: "当被要求做即兴演讲时，你会感到：", dimension: 'EI', options: [{ text: "充满挑战和兴奋", value: 1 }, { text: "有些紧张和不安", value: 0 }] },
+
+            // S (实感) / N (直觉) 维度 (10 题)
+            { id: 11, text: "描述一件事物时，你更关注：", dimension: 'SN', options: [{ text: "眼前可见的细节和现实情况", value: 1 }, { text: "隐藏的模式、可能性和意义", value: 0 }] },
+            { id: 12, text: "处理新信息时，你更倾向于：", dimension: 'SN', options: [{ text: "相信经验和已经发生的事实", value: 1 }, { text: "想象未来的变化和理论概念", value: 0 }] },
+            { id: 13, text: "你对创意或艺术作品的看法是：", dimension: 'SN', options: [{ text: "它们实际的应用价值和功能", value: 1 }, { text: "它们所象征的含义和深层寓意", value: 0 }] },
+            { id: 14, text: "你解决问题的方式是：", dimension: 'SN', options: [{ text: "关注事实和实际步骤", value: 1 }, { text: "寻找根本原因或未来可能性", value: 0 }] },
+            { id: 15, text: "你更欣赏：", dimension: 'SN', options: [{ text: "描述清晰、细节精确的故事", value: 1 }, { text: "充满象征意义和抽象想法的文学", value: 0 }] },
+            { id: 16, text: "你学习新技能时：", dimension: 'SN', options: [{ text: "喜欢通过实际操作和练习", value: 1 }, { text: "喜欢先理解背后的理论和概念", value: 0 }] },
+            { id: 17, text: "当你展望未来时，你倾向于：", dimension: 'SN', options: [{ text: "基于过去的经验和趋势", value: 1 }, { text: "想象各种可能和无限潜力", value: 0 }] },
+            { id: 18, text: "你觉得犯错是因为：", dimension: 'SN', options: [{ text: "忽视了重要的细节", value: 1 }, { text: "忘记了全局或愿景", value: 0 }] },
+            { id: 19, text: "在给出方向时，你倾向于：", dimension: 'SN', options: [{ text: "给出精确的步骤和地图", value: 1 }, { text: "给出目的地和大致方向", value: 0 }] },
+            { id: 20, text: "你更关注生活中的：", dimension: 'SN', options: [{ text: "此刻的感官体验", value: 1 }, { text: "事件之间的联系和模式", value: 0 }] },
+
+            // T (思考) / F (情感) 维度 (10 题)
+            { id: 21, text: "在做决策时，你更重视：", dimension: 'TF', options: [{ text: "逻辑、客观的标准和公平性", value: 1 }, { text: "他人的感受、价值观和和谐", value: 0 }] },
+            { id: 22, text: "面对他人的困境，你会：", dimension: 'TF', options: [{ text: "帮助他们分析问题，提出解决方案", value: 1 }, { text: "表达理解和支持，提供情感慰藉", value: 0 }] },
+            { id: 23, text: "你认为批评应该：", dimension: 'TF', options: [{ text: "直接了当，指出需要改进的地方", value: 1 }, { text: "委婉表达，先肯定积极的方面", value: 0 }] },
+            { id: 24, text: "在争论中，你通常：", dimension: 'TF', options: [{ text: "保持客观，专注于论点本身", value: 1 }, { text: "考虑双方情绪，努力保持和谐", value: 0 }] },
+            { id: 25, text: "你认为做出“正确”决定的关键是：", dimension: 'TF', options: [{ text: "逻辑分析和一致性", value: 1 }, { text: "考虑人们的价值观和感受", value: 0 }] },
+            { id: 26, text: "你的朋友来寻求建议时，你更倾向于：", dimension: 'TF', options: [{ text: "提供解决方案和行动步骤", value: 1 }, { text: "提供情感支持和理解", value: 0 }] },
+            { id: 27, text: "你对别人的感受：", dimension: 'TF', options: [{ text: "只有当明确表达时才会注意到", value: 1 }, { text: "很容易就能感受到", value: 0 }] },
+            { id: 28, text: "做重要的职业决定时，你最看重：", dimension: 'TF', options: [{ text: "工作的效率和产出", value: 1 }, { text: "工作是否符合你的个人价值观", value: 0 }] },
+            { id: 29, text: "在你看来，遵守承诺是因为：", dimension: 'TF', options: [{ text: "这是责任和义务", value: 1 }, { text: "这是维系人际关系的纽带", value: 0 }] },
+            { id: 30, text: "在电影中，你更容易被以下哪种角色吸引？", dimension: 'TF', options: [{ text: "冷静理性，能解决复杂难题的角色", value: 1 }, { text: "富有同情心，为爱和信念牺牲的角色", value: 0 }] },
+
+            // J (判断) / P (感知) 维度 (10 题)
+            { id: 31, text: "处理生活中的任务时，你更喜欢：", dimension: 'JP', options: [{ text: "事先做好规划，有明确的目标和截止日期", value: 1 }, { text: "保持灵活和开放，顺应形势变化", value: 0 }] },
+            { id: 32, text: "你的工作空间或房间通常是：", dimension: 'JP', options: [{ text: "整洁有序，物品各归其位", value: 1 }, { text: "比较随意，需要时能找到东西就好", value: 0 }] },
+            { id: 33, text: "对于突如其来的变化，你会：", dimension: 'JP', options: [{ text: "感到不安，更希望事情按计划进行", value: 1 }, { text: "感到兴奋，认为这是探索新事物的机会", value: 0 }] },
+            { id: 34, text: "旅行前，你通常：", dimension: 'JP', options: [{ text: "制定详细的行程计划", value: 1 }, { text: "只确定大方向，边走边看", value: 0 }] },
+            { id: 35, text: "你喜欢截止日期吗：", dimension: 'JP', options: [{ text: "喜欢，它们能帮助我保持专注", value: 1 }, { text: "讨厌，它们限制了我的灵活性", value: 0 }] },
+            { id: 36, text: "你认为一个干净整洁的环境：", dimension: 'JP', options: [{ text: "是必须的，让人感觉平静", value: 1 }, { text: "不错，但不是最重要的", value: 0 }] },
+            { id: 37, text: "你更喜欢的工作状态是：", dimension: 'JP', options: [{ text: "有计划、有结构地完成任务", value: 1 }, { text: "灵活应对，在压力下爆发能量", value: 0 }] },
+            { id: 38, text: "你在商店购物时：", dimension: 'JP', options: [{ text: "严格按照购物清单进行", value: 1 }, { text: "很容易被新奇事物吸引而偏离清单", value: 0 }] },
+            { id: 39, text: "你通常何时开始准备考试或任务：", dimension: 'JP', options: [{ text: "提前很久就开始规划和准备", value: 1 }, { text: "等到最后期限前才开始，但能高效完成", value: 0 }] },
+            { id: 40, text: "你更欣赏哪种人：", dimension: 'JP', options: [{ text: "言出必行，有条不紊的人", value: 1 }, { text: "充满惊喜，能带来意外乐趣的人", value: 0 }] },
+        ];
+        
+        // 16种人格类型的结果数据（保持不变）
+        const resultsData = {
+            ISTJ: { title: "物流师", brief: "内向、实感、思考、判断 (ISTJ)。可靠、务实，是传统和秩序的守护者。", detail: "ISTJ 强调逻辑、秩序和效率。他们是天生的组织者，注重细节，一旦设定目标就会坚持不懈。适合会计、工程师等需要精确定位和高可靠性的职业。他们在情感表达上可能比较内敛，但内心忠诚。" },
+            ISFJ: { title: "守卫者", brief: "内向、实感、情感、判断 (ISFJ)。温暖、有爱心，乐于奉献，是安静的守护者。", detail: "ISFJ 是最值得信赖的人格类型之一。他们用实际行动表达关怀，默默支持着周围的人。他们记忆力强，重视传统，是优秀的护士、教育工作者和行政人员。他们有时难以拒绝别人的请求，需要注意保护自己。" },
+            INFJ: { title: "倡导者", brief: "内向、直觉、情感、判断 (INFJ)。富有洞察力、利他主义，拥有坚定的价值观和清晰的远见。", detail: "INFJ 是稀有而富有远见的人。他们通过内省来理解复杂的人类情感和宇宙奥秘。他们寻求有意义的人生，常投身于咨询、写作或人道主义工作。他们倾向于完美主义，并需要独处时间来重新充电。" },
+            INTJ: { title: "建筑师", brief: "内向、直觉、思考、判断 (INTJ)。战略家、知识分子，渴望提升能力和知识。", detail: "INTJ 擅长长期规划和系统构建。他们对知识充满渴望，习惯质疑一切，并能制定出宏大的蓝图。他们适合科学家、技术专家或高层战略规划职位。他们有时在社交上显得疏离，但对少数亲密朋友极度忠诚。" },
+            ISTP: { title: "鉴赏家", brief: "内向、实感、思考、感知 (ISTP)。理性、好奇，热衷于用双手探索世界，是天生的修理工。", detail: "ISTP 是务实的问题解决者，他们通过实际操作来学习。他们冷静、随性，能够迅速适应变化的环境。适合机械师、飞行员、急救人员等需要动手能力和快速反应的职业。他们不喜欢被束缚，追求自由和即时满足。" },
+            ISFP: { title: "探险家", brief: "内向、实感、情感、感知 (ISFP)。灵活、迷人，是拥有强大感官和艺术气质的创造者。", detail: "ISFP 活在当下，用艺术和行动表达自我。他们是敏感的观察者，对美和色彩有独特的感知力。他们适合设计师、音乐家、手工艺人等创意职业。他们重视个人空间和自由，讨厌规则和约束。" },
+            INFP: { title: "调停者", brief: "内向、直觉、情感、感知 (INFP)。理想主义、忠于价值观，寻求自我认同和人生意义。", detail: "INFP 温和、富有想象力，是梦想家和哲学家。他们深信人性和世界的美好，对不公平现象深感不安。他们适合作家、心理咨询师、艺术家等能够表达内心世界的职业。他们有时会过度内省，沉浸在自己的内心世界中。" },
+            INTP: { title: "逻辑学家", brief: "内向、直觉、思考、感知 (INTP)。创新、精准，热衷于分析和解决复杂的理论问题。", detail: "INTP 是思维的建筑师，不断解构和重构知识。他们喜欢精确的语言和逻辑推理，但可能对日常琐事感到不耐烦。他们适合研究员、程序员、大学教授等需要深度思考的领域。他们需要学会将抽象理论转化为实际行动。" },
+            ESTP: { title: "企业家", brief: "外向、实感、思考、感知 (ESTP)。精力充沛、冒险，是充满魅力的行动派。", detail: "ESTP 享受刺激和变化，是天生的谈判专家和表演者。他们活在当下，擅长捕捉机会并立即采取行动。适合销售、运动员、企业家等需要高情商和快速反应的职业。他们可能不太擅长长期规划，更喜欢走一步看一步。" },
+            ESFP: { title: "表演者", brief: "外向、实感、情感、感知 (ESFP)。活泼、热情，是带来欢乐和享受生活的艺术家。", detail: "ESFP 是派对的焦点，擅长用幽默和热情感染周围的人。他们对美和感官享受有敏锐的感知。适合娱乐业、旅游业、活动策划等需要表现力和人际交往的职业。他们可能会优先考虑乐趣和社交，有时忽略责任。" },
+            ENFP: { title: "竞选者", brief: "外向、直觉、情感、感知 (ENFP)。充满活力、好奇心强，是富有激情的自由精神。", detail: "ENFP 是充满创意和激情的理想主义者。他们能看到一切的可能性，并渴望探索。他们适合记者、公关、创意总监等需要创新和人际连接的职业。他们有时容易分心或过度承诺，需要学会专注于重要事项。" },
+            ENTP: { title: "辩论家", brief: "外向、直觉、思考、感知 (ENTP)。聪明、求知欲强，喜欢挑战规则和智力辩论。", detail: "ENTP 是思维敏捷、充满魅力的辩论高手。他们喜欢探索各种可能性，不断挑战现有系统。适合律师、发明家、战略顾问等需要创新思维和批判性分析的职业。他们可能会为了争论而争论，有时缺乏执行力。" },
+            ESTJ: { title: "总经理", brief: "外向、实感、思考、判断 (ESTJ)。务实、尽责，是高效的管理者和传统的维护者。", detail: "ESTJ 是天生的领导者，注重效率、规则和结构。他们擅长组织和执行，确保任务按时完成。适合管理层、军官、金融主管等需要清晰权威和组织能力的职业。他们有时会显得过于固执和缺乏弹性。" },
+            ESFJ: { title: "执政官", brief: "外向、实感、情感、判断 (ESFJ)。善良、社交，是社区的组织者和人际关系的协调者。", detail: "ESFJ 非常重视社交和谐，乐于助人，并积极参与社区活动。他们是优秀的倾听者和支持者。适合教师、医疗保健人员、人力资源等需要高情商和组织人际关系的职业。他们非常在意别人的看法和感受。" },
+            ENFJ: { title: "主人公", brief: "外向、直觉、情感、判断 (ENFJ)。富有魅力、鼓舞人心，是天生的领导者和导师。", detail: "ENFJ 充满热情和感召力，是致力于帮助他人实现潜能的理想主义者。他们擅长激励和团结团队。适合政治家、演说家、导师、培训师等职业。他们有时会过度承担责任，牺牲自己的需求。" },
+            ENTJ: { title: "指挥官", brief: "外向、直觉、思考、判断 (ENTJ)。果断、自信，是富有远见的战略家和组织领导者。", detail: "ENTJ 充满雄心壮志，是目标导向的决策者。他们能够迅速评估情况并制定出高效的执行计划。适合CEO、高级管理者、项目经理等需要宏观视野和决策能力的职业。他们有时会显得过于强势或不耐烦。" },
+        };
+
+        // --- 2. 状态和核心变量 ---
+        let currentQuestionIndex = 0;
+        let scores = {
+            EI: 0, // E: +1, I: +0
+            SN: 0, // S: +1, N: +0
+            TF: 0, // T: +1, F: +0
+            JP: 0  // J: +1, P: +0
+        };
+        let finalResultType = '';
+
+        // --- 3. DOM 元素获取和通用函数 ---
+        const appContainer = () => document.getElementById('app-container');
+        const renderScreen = (htmlContent) => {
+            const container = appContainer();
+            if (container) container.innerHTML = htmlContent;
+        };
+        
+        /**
+         * 渲染自定义消息框（替换 alert）
+         */
+        function showCustomMessage(message, type) {
+            const container = document.getElementById('message-container');
+            if (!container) return;
+            
+            // 确保只有一个消息框显示
+            const existingMessages = container.querySelectorAll('div');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const colorClass = type === 'success' ? 'bg-secondary-green' : 'bg-red-500';
+            const messageBox = document.createElement('div');
+            messageBox.className = `fixed bottom-4 left-1/2 transform -translate-x-1/2 p-3 px-6 text-white rounded-lg shadow-xl z-50 opacity-100 transition-opacity duration-300 ${colorClass}`;
+            messageBox.textContent = message;
+
+            container.appendChild(messageBox);
+            // 3秒后开始淡出
+            setTimeout(() => {
+                messageBox.style.opacity = '0';
+                messageBox.addEventListener('transitionend', () => messageBox.remove());
+            }, 3000);
+        }
+
+        /**
+         * 复制文本到剪贴板
+         * @param {string} text - 要复制的文本
+         */
+        function copyToClipboard(text) {
+            // 使用临时的 textarea 来实现跨浏览器兼容的复制功能
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px'; // 隐藏输入框
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showCustomMessage('链接已复制到剪贴板！请前往微信分享。', 'success');
+                } else {
+                    showCustomMessage('复制失败，请手动复制链接。', 'error');
+                }
+            } catch (err) {
+                showCustomMessage('复制失败，请手动复制链接。', 'error');
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        // --- 5. 流程控制函数 ---
+        function renderHome() {
+            const homeHTML = `
+                <div class="p-6 md:p-8 w-full max-w-md mx-auto text-center">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl border-t-8 border-primary-blue">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-primary-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <h1 class="text-3xl font-extrabold text-gray-800 mb-2">MBTI 深度人格测试</h1>
+                        <p class="text-gray-500 mb-6">发现你的真实性格类型</p>
+                        
+                        <div class="text-left mb-8 text-sm text-gray-600 space-y-2 p-3 bg-gray-50 rounded-lg">
+                            <p class="font-semibold">💡 免费测试说明：</p>
+                            <ul class="list-disc ml-4 space-y-1">
+                                <li>本测试为**免费测试**，共 **${quizData.length}** 道精选问题，保证测试的准确性。</li>
+                            </ul>
+                        </div>
+                        
+                        <button
+                            onclick="startQuiz()"
+                            class="w-full py-3 px-6 bg-secondary-green text-white font-bold rounded-xl shadow-lg hover:bg-secondary-green/90 transition duration-300 transform hover:scale-[1.02] text-lg"
+                        >
+                            开始深度测试
+                        </button>
+                    </div>
+                </div>
+            `;
+            renderScreen(homeHTML);
+        }
+        
+        /**
+         * 启动测试：渲染第一个题目。
+         */
+        function startQuiz() {
+            currentQuestionIndex = 0;
+            scores = { EI: 0, SN: 0, TF: 0, JP: 0 };
+            renderQuestion();
+        }
+
+        /**
+         * 渲染当前题目
+         */
+        function renderQuestion() {
+            if (currentQuestionIndex >= quizData.length) {
+                return calculateResult();
+            }
+
+            const q = quizData[currentQuestionIndex];
+            // 计算进度（确保它在 0 到 100 之间）
+            const progress = Math.round(((currentQuestionIndex + 1) / quizData.length) * 100);
+
+            const questionHTML = `
+                <!-- 顶部栏 -->
+                <div class="flex justify-between items-center w-full max-w-lg mx-auto mb-4">
+                    <p class="text-sm font-semibold text-primary-blue">问题 ${currentQuestionIndex + 1} / ${quizData.length}</p>
+                    <button onclick="renderHome()" class="text-sm text-gray-500 hover:text-primary-blue transition duration-200">
+                        退出
+                    </button>
+                </div>
+
+                <!-- 进度条 -->
+                <div class="w-full bg-gray-200 rounded-full h-2 mb-8 shadow-inner max-w-lg mx-auto">
+                    <div class="bg-primary-blue h-2 rounded-full transition-all duration-500" style="width: ${progress}%%"></div>
+                </div>
+
+                <!-- 题目卡片 -->
+                <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-lg mx-auto transform transition duration-500 hover:scale-[1.01]">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800 mb-6">${q.text}</h2>
+                    <div id="options-container" class="space-y-4">
+                        ${q.options.map((option, index) => `
+                            <button
+                                onclick="answerQuestion(${option.value}, '${q.dimension}')"
+                                class="w-full text-left p-4 rounded-xl border-2 border-gray-200 bg-gray-50 hover:bg-primary-blue hover:text-white transition duration-300 ease-in-out transform hover:-translate-y-0.5 shadow-md text-gray-700 font-medium"
+                                aria-label="选择选项 ${index + 1}: ${option.text}"
+                            >
+                                ${option.text}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            renderScreen(questionHTML);
+        }
+
+        /**
+         * 记录答案并跳转到下一题
+         * @param {number} value - 选项的值 (1 或 0)
+         * @param {string} dimension - 对应的维度 (EI, SN, TF, JP)
+         */
+        function answerQuestion(value, dimension) {
+            scores[dimension] += value;
+            currentQuestionIndex++;
+            renderQuestion();
+        }
+
+        /**
+         * 计算最终的人格类型
+         */
+        function calculateResult() {
+            // 计算每个维度的倾向
+            const EI_COUNT = quizData.filter(q => q.dimension === 'EI').length;
+            const SN_COUNT = quizData.filter(q => q.dimension === 'SN').length;
+            const TF_COUNT = quizData.filter(q => q.dimension === 'TF').length;
+            const JP_COUNT = quizData.filter(q => q.dimension === 'JP').length;
+
+            // 逻辑: 如果得分大于总题数的一半，则倾向于'E', 'S', 'T', 'J' (值=1)
+            const E_I = (scores.EI > EI_COUNT / 2) ? 'E' : 'I';
+            const S_N = (scores.SN > SN_COUNT / 2) ? 'S' : 'N';
+            const T_F = (scores.TF > TF_COUNT / 2) ? 'T' : 'F';
+            const J_P = (scores.JP > JP_COUNT / 2) ? 'J' : 'P';
+
+            finalResultType = `${E_I}${S_N}${T_F}${J_P}`;
+            renderBriefResult();
+        }
+
+        /**
+         * 渲染简要结果 (解锁前) - 重新启用双重解锁机制
+         */
+        function renderBriefResult() {
+            const result = resultsData[finalResultType];
+
+            const briefResultHTML = `
+                <div class="p-6 md:p-8 w-full max-w-md mx-auto">
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-extrabold text-primary-blue mb-2">测试完成！</h1>
+                        <p class="text-gray-600">你的初步人格类型是...</p>
+                    </div>
+
+                    <!-- 简要结果卡片 -->
+                    <div class="bg-white p-6 rounded-2xl shadow-2xl border-t-4 border-secondary-green mb-8">
+                        <p class="text-5xl font-black text-center mb-2">${finalResultType}</p>
+                        <p class="text-xl font-semibold text-center text-gray-800">${result.title} (${result.brief.split(' ')[0]})</p>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <h3 class="text-lg font-bold text-secondary-green mb-2">类型概述</h3>
+                            <p class="text-gray-600 text-sm">${result.brief}</p>
+                        </div>
+                    </div>
+
+                    <!-- 解锁区 - 强制观看广告 或 分享 -->
+                    <div class="bg-accent-yellow/10 p-4 rounded-xl border border-accent-yellow/30 text-center shadow-md">
+                        <p class="text-lg font-bold text-accent-yellow mb-4">📢 完整报告已锁定！</p>
+                        <p class="text-gray-700 mb-4 text-sm">恭喜您完成全部 **${quizData.length}** 道测试。选择以下任一方式免费解锁专属完整报告！</p>
+                        
+                        <div class="space-y-3">
+                            <!-- 选项 1: 观看广告 -->
+                            <button
+                                onclick="renderAdView()"
+                                class="w-full py-3 px-6 bg-secondary-green text-white font-bold rounded-xl shadow-lg hover:bg-secondary-green/90 transition duration-300 transform hover:scale-[1.02] flex items-center justify-center"
+                            >
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.55 4.55a2 2 0 010 2.83l-4.55 4.55-7-7 7-7zM2 12h20"></path></svg>
+                                观看 15 秒广告解锁
+                            </button>
+
+                            <!-- 分割线 -->
+                            <div class="flex items-center">
+                                <div class="flex-grow border-t border-gray-300"></div>
+                                <span class="flex-shrink mx-4 text-gray-500 text-sm">或</span>
+                                <div class="flex-grow border-t border-gray-300"></div>
+                            </div>
+                            
+                            <!-- 选项 2: 分享解锁 -->
+                            <button
+                                onclick="renderSharePrompt()"
+                                class="w-full py-3 px-6 bg-primary-blue text-white font-bold rounded-xl shadow-lg hover:bg-primary-blue/90 transition duration-300 transform hover:scale-[1.02] flex items-center justify-center"
+                            >
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.882 13.064 9 12.7 9 12v-1c0-.28-.118-.564-.316-.776zM21 21v-2a2 2 0 00-2-2H5a2 2 0 00-2 2v2M12 4v.01M12 11V4M12 4a2 2 0 012 2v5a2 2 0 01-2 2h-2a2 2 0 01-2-2V6a2 2 0 012-2h2z"></path></svg>
+                                分享给好友立即解锁
+                            </button>
+                        </div>
+                    </div>
+
+                    <button
+                        onclick="renderHome()"
+                        class="mt-4 w-full text-sm text-gray-500 hover:text-primary-blue transition duration-200"
+                    >
+                        返回主页
+                    </button>
+                </div>
+            `;
+            renderScreen(briefResultHTML);
+        }
+
+        /**
+         * 渲染模拟广告页面 (用户必须等待才能跳过/解锁)
+         */
+        function renderAdView() {
+            const adHTML = `
+                <div class="p-6 md:p-8 w-full max-w-md mx-auto text-center">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl border-t-8 border-accent-yellow">
+                        <h1 class="text-2xl font-bold text-accent-yellow mb-4">广告播放中...</h1>
+                        <p class="text-gray-600 mb-6">感谢您的支持，完整报告马上为您呈现！</p>
+                        
+                        <!-- 广告位占位符 (您需要将这段代码替换为 Google AdSense 等广告平台的代码) -->
+                        <div class="w-full h-48 bg-gray-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center rounded-lg mb-8">
+                            <p class="text-gray-400 font-semibold mb-2">--- 您的主要广告位 (300x250) ---</p>
+                            <p class="text-xs text-gray-400">请替换为真实的广告代码以产生收益</p>
+                        </div>
+                        
+                        <p id="ad-timer" class="text-lg font-semibold text-gray-700 mb-4">剩余 15 秒...</p>
+
+                        <button
+                            id="skip-button"
+                            disabled
+                            class="w-full py-3 px-6 bg-gray-400 text-white font-bold rounded-xl shadow-lg transition duration-300 cursor-not-allowed"
+                            aria-label="跳过广告"
+                            onclick="renderDetailedResult()"
+                        >
+                            跳过/解锁 (请稍候)
+                        </button>
+                    </div>
+                </div>
+            `;
+            renderScreen(adHTML);
+
+            // 计时器逻辑
+            let timeLeft = 15; // 计时器设置为 15 秒
+            const timerElement = document.getElementById('ad-timer');
+            const skipButton = document.getElementById('skip-button');
+
+            // 使用 setTimeout 模拟等待时间
+            const timer = setInterval(() => {
+                timeLeft -= 1;
+                if (timerElement) {
+                    timerElement.textContent = `剩余 ${timeLeft} 秒...`;
+                }
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    if (timerElement) timerElement.textContent = `广告已播放完毕。`;
+                    if (skipButton) {
+                        skipButton.disabled = false;
+                        skipButton.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                        skipButton.classList.add('bg-secondary-green', 'hover:bg-secondary-green/90');
+                        skipButton.textContent = '点击解锁完整报告';
+                    }
+                }
+            }, 1000);
+        }
+
+        /**
+         * 渲染模拟分享页面 (模拟分享成功后自动解锁)
+         */
+        function renderSharePrompt() {
+            // 获取当前页面的URL作为分享链接
+            const shareUrl = window.location.href; 
+            
+            const shareHTML = `
+                <div class="p-6 md:p-8 w-full max-w-md mx-auto text-center">
+                    <div class="bg-white p-8 rounded-2xl shadow-xl border-t-8 border-primary-blue">
+                        <h1 class="text-2xl font-bold text-primary-blue mb-4">🎉 即将解锁！</h1>
+                        <p class="text-gray-600 mb-6">请将此测试链接分享给好友，让他们也来测试一下吧。</p>
+
+                        <!-- 链接和复制按钮区域 -->
+                        <div class="mb-6">
+                            <label for="shareLink" class="block text-sm font-medium text-gray-700 mb-2 text-left">分享链接 (点击复制):</label>
+                            <div class="flex rounded-lg shadow-sm">
+                                <input 
+                                    type="text" 
+                                    id="shareLink" 
+                                    value="${shareUrl}" 
+                                    readonly 
+                                    class="flex-grow p-3 text-sm rounded-l-lg border border-gray-300 bg-gray-50 overflow-hidden text-ellipsis cursor-pointer"
+                                    onclick="copyToClipboard(this.value)"
+                                >
+                                <button
+                                    onclick="copyToClipboard('${shareUrl}')"
+                                    class="px-4 py-3 bg-primary-blue text-white font-semibold rounded-r-lg hover:bg-primary-blue/90 transition duration-150"
+                                >
+                                    复制
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 二维码占位符 (用于微信扫码) -->
+                        <div class="w-full h-48 bg-gray-100 border-2 border-dashed border-primary-blue/50 flex flex-col items-center justify-center rounded-lg mb-8">
+                            <img src="https://placehold.co/150x150/e0f2f1/0d9488?text=QR+Code" alt="分享二维码占位符" class="w-32 h-32 mb-2 rounded-lg">
+                            <p class="text-xs text-gray-500">（扫描二维码分享，请替换为您的真实二维码）</p>
+                        </div>
+
+                        <button
+                            onclick="renderDetailedResult()"
+                            class="w-full py-3 px-6 bg-secondary-green text-white font-bold rounded-xl shadow-lg hover:bg-secondary-green/90 transition duration-300 transform hover:scale-[1.02] flex items-center justify-center"
+                        >
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            我已分享，点击查看报告
+                        </button>
+                    </div>
+                </div>
+            `;
+            renderScreen(shareHTML);
+        }
+
+        /**
+         * 渲染详细结果 (解锁后) - 已移除内嵌广告位
+         */
+        function renderDetailedResult() {
+            const result = resultsData[finalResultType];
+
+            const detailedResultHTML = `
+                <div class="p-4 md:p-8 w-full max-w-2xl mx-auto">
+                    <div class="text-center mb-6">
+                        <h1 class="text-4xl font-extrabold text-primary-blue mb-2">${finalResultType} - ${result.title}</h1>
+                        <p class="text-lg text-secondary-green font-semibold">恭喜您！您的完整报告已解锁。</p>
+                    </div>
+
+                    <!-- 详细报告卡片 -->
+                    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-3xl border-l-8 border-primary-blue scrollable-content max-h-[80vh] overflow-y-auto">
+                        
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">🔍 深度分析：${result.title}</h2>
+
+                        <p class="text-gray-700 leading-relaxed mb-6">
+                            ${result.detail}
+                        </p>
+
+                        <!-- 额外部分：职业建议 -->
+                        <div class="mt-6 pt-4 border-t-2 border-gray-100">
+                            <h3 class="text-xl font-bold text-secondary-green mb-3 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745m16.5 6.205v-4h-2V19m2 0H14m-1-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                职业发展方向
+                            </h3>
+                            <ul class="list-disc ml-6 text-gray-700">
+                                <li><strong>需要逻辑和细节：</strong> 会计、数据分析师</li>
+                                <li><strong>需要沟通和协作：</strong> 人力资源、教师</li>
+                                <li><strong>需要创意和独立：</strong> 程序员、自由职业者</li>
+                            </ul>
+                        </div>
+
+                        <!-- 关系建议 (示例) -->
+                        <div class="mt-6 pt-4 border-t-2 border-gray-100">
+                            <h3 class="text-xl font-bold text-primary-blue mb-3 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+                                情感与关系
+                            </h3>
+                            <p class="text-gray-700">
+                                了解自己的倾向后，可以更好地与不同类型的人沟通。记住，开放和理解是建立健康关系的关键。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-6">
+                        <button
+                            onclick="renderHome()"
+                            class="py-2 px-4 bg-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-300 transition duration-200"
+                        >
+                            回到首页重新测试
+                        </button>
+                    </div>
+                </div>
+            `;
+            renderScreen(detailedResultHTML);
+        }
+
+        // --- 6. 页面加载完成后，显示主页屏幕 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderHome();
+        });
+    </script>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <!-- 消息提示框容器 -->
+    <div id="message-container"></div>
+    <div id="app-container" class="w-full">
+        <!-- 内容会通过 JavaScript 渲染到这里 -->
+    </div>
+</body>
+</html>
